@@ -1,0 +1,38 @@
+<% layout('./layout/boilerplate') -%>
+  <div class="container mt-5">
+    <h2 class="mb-4">Edit Listing</h2>
+    <form action="/campgrounds/<%=findCamp._id%>/update?_method=PATCH" method="post">
+      <!-- Hidden ID field (optional, for backend tracking) -->
+      <input type="hidden" name="id" value="123">
+
+      <div class="mb-3">
+        <label for="title" class="form-label">Title</label>
+        <input type="text" class="form-control" id="title" name="title" value=<%=findCamp.title%>>
+      </div>
+
+      <div class="mb-3">
+        <label for="description" class="form-label">Description</label>
+        <textarea class="form-control" id="description" name="description" rows="4"><%=findCamp.description%></textarea>
+      </div>
+
+      <div class="mb-3">
+        <label for="location" class="form-label">Location</label>
+        <input type="text" class="form-control" id="location" name="location" value=<%=findCamp.location%>>
+      </div>
+
+      <div class="mb-3">
+        <label for="image" class="form-label">Image URL</label>
+        <input type="text" class="form-control" id="image" name="image" value=<%=findCamp.image%>>
+      </div>
+
+      <div class="mb-3">
+        <label for="price" class="form-label">Price</label>
+        <input type="number" class="form-control" id="price" name="price" value=<%=findCamp.price%>>
+      </div>
+
+      <button type="submit" class="btn btn-success">Update</button>
+    </form>
+  </div>
+
+  
+
