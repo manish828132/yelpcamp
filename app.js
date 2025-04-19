@@ -5,6 +5,7 @@ const mongoose=require('mongoose')
 const ejsMATE=require('ejs-mate');
 const Campground=require('./models/campground')
 const seedCampgrounds=require('./seed')
+const AppError=require('./AppError');
 
 
 const app=express();
@@ -33,12 +34,20 @@ mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp-project', {
 
 
 app.get('/home',(req,res)=>{
+    
     res.render('home');
 })
 
 app.get('/campground',async (req,res)=>{
+    
     const campgrounds=await Campground.find({})
-    res.render('campground/home',{campgrounds})
+    
+        res.render('campground/home',{campgrounds})
+       
+    
+    
+
+   
     // await Campground.insertMany(seedCampgrounds)
     // res.send("ok")
 })
@@ -46,7 +55,12 @@ app.get('/campground',async (req,res)=>{
 app.get('/campground/:id',async (req,res)=>{
     const {id}=req.params;
     const campground=await Campground.findById({_id:id});
-    res.render('campground/show',{campground});
+    if(campground){
+    res.render('campground/show',{campground});}
+    else{
+        throw new AppError("product not found",404);
+    }
+     
 })
 
 app.get('/create',(req,res)=>{
@@ -85,6 +99,11 @@ app.delete('/delete/:id',async (req,res)=>{
     res.redirect('/campground');
     
 
+})
+
+app.use((err,req,res,next)=>{
+    const{status=500,message="error!!!!!!!!!!!1"}=err;
+    res.status(status).send(message);
 })
 
 
