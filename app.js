@@ -5,7 +5,8 @@ const mongoose=require('mongoose')
 const ejsMATE=require('ejs-mate');
 const Campground=require('./models/campground')
 const seedCampgrounds=require('./seed')
-const AppError=require('./AppError');
+const AppError=require('./utils/AppError');
+const validateCampground=require('./utils/campgroundValidationSchema')
 
 
 const app=express();
@@ -72,7 +73,7 @@ app.get('/campgrounds/:id/edit',async (req,res)=>{
     
     res.render('campground/edit',{findCamp});
 })
-app.patch('/campgrounds/:id/update',async (req,res)=>{
+app.patch('/campgrounds/:id/update',validateCampground,async (req,res)=>{
     const {id}=req.params;
     const updateCamp=await Campground.findByIdAndUpdate(id, req.body, {
         new: true,       // return the updated document
@@ -81,7 +82,7 @@ app.patch('/campgrounds/:id/update',async (req,res)=>{
       res.redirect(`/campground/${updateCamp._id}`)
 })
 
-app.post('/create',async (req,res)=>{
+app.post('/create',validateCampground,async (req,res)=>{
     const {title,description,location,price,image}=req.body;
     const newCamp=new Campground({title:title,
         description:description,
@@ -101,12 +102,33 @@ app.delete('/delete/:id',async (req,res)=>{
 
 })
 
+
+// app.use((err,req,res,next)=>{
+//     console.log(err.name);
+//     next(err);
+// })
+
+app.all(/(.*)/, (req, res, next) => {
+    next(new AppError('Page not found', 404));
+});
+
+
+
 app.use((err,req,res,next)=>{
-    const{status=500,message="error!!!!!!!!!!!1"}=err;
-    res.status(status).send(message);
+    const {status=500,message="error!!!!!!!!!!!"}=err;
+    res.status(status).render('error',{err});
+    //res.render('error')
+    //res.send(`${err.name} ${err.message}`)
 })
 
 
 app.listen('3000',function(){
     console.log('server started')
 })
+
+
+
+// notes:
+// Ah, yes — you're totally right, and great point to bring up.
+
+// As of Express v5 (currently in beta but widely used), async errors are handled automatically, meaning you no longer need to manually wrap route handlers in try/catch or use custom asyncHandler wrappers like you did in Express v4.

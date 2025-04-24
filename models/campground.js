@@ -2,19 +2,24 @@ const mongoose=require('mongoose')
 
 const campgroundSchema=new mongoose.Schema({
     title:{
-        type:String
+        type:String,
+        required:true
     },
     price:{
-        type:Number
+        type:Number,
+        required:true
     },
     description:{
-        type:String
+        type:String,
+        required:true
     },
     location:{
-        type:String
+        type:String,
+        required:true
     },
     image:{
-        type:String
+        type:String,
+        required:true
     }
 })
 
