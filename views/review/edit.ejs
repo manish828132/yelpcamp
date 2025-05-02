@@ -1,0 +1,15 @@
+<% layout('./layout/boilerplate') -%>
+<form action="/campground/<%=cam_id %>/review/<%=rev_id %>/edit?_method=PATCH" method="POST" class="mt-4">
+    <div class="mb-3">
+      <label for="reviewBody" class="form-label">Write a Review</label>
+      <textarea name="text" id="reviewBody" class="form-control" rows="3" required><%=text %></textarea>
+    </div>
+  
+    <div class="mb-3">
+      <label for="reviewRating" class="form-label">Rating (1–5)</label>
+      <input type="number" name="rating" id="reviewRating" class="form-control" min="1" max="5" required value=<%=rating %>>
+    </div>
+  
+    <button type="submit" class="btn btn-primary">Save</button>
+  </form>
+  

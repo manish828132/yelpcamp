@@ -1,6 +1,7 @@
 const Joi = require('joi');
 const AppError=require('./AppError')
 const campgroundSchema = Joi.object({
+    id: Joi.string().optional(),
     title: Joi.string().required(),
     location: Joi.string().required(),
     price: Joi.number().min(0).required(),

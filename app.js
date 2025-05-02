@@ -7,7 +7,8 @@ const Campground=require('./models/campground')
 const seedCampgrounds=require('./seed')
 const AppError=require('./utils/AppError');
 const validateCampground=require('./utils/campgroundValidationSchema')
-
+const Review=require('./models/review')
+const validateReview=require('./utils/reviewValidationSchema');
 
 const app=express();
 
@@ -53,9 +54,58 @@ app.get('/campground',async (req,res)=>{
     // res.send("ok")
 })
 
+app.get('/campground/:cam_id/review/:rev_id/edit',async (req,res)=>{
+    const {rev_id,cam_id}=req.params;
+   const review=await Review.findById(rev_id);
+   
+    res.render('review/edit',{rev_id,cam_id,text:review.text,rating:review.rating})
+
+})
+
+app.get('/campground/review/:id',async (req,res)=>{
+    const {id}=req.params;
+
+    res.render('review/review',{id});
+})
+
+app.patch('/campground/:cam_id/review/:rev_id/edit',validateReview,async (req,res)=>{
+    const{cam_id,rev_id}=req.params;
+    const {text,rating}=req.body;
+    const update=await Review.findByIdAndUpdate(rev_id, req.body, {
+        new: true,       // return the updated document
+        runValidators: true // ensures Mongoose validators run
+      });
+      res.redirect(`/campground/${cam_id}`);
+    //res.send(cam_id+rev_id+text+rating);
+
+})
+
+app.post('/campground/review/:id',validateReview,async (req,res)=>{
+    const {text,rating}=req.body;
+    const {id}=req.params;
+    const camp=await Campground.findById({_id:id});
+    const newReview=new Review({text,
+        rating});
+    camp.review.push(newReview);
+    await newReview.save();  
+    await camp.save();  
+    res.redirect(`/campground/${id}`)
+})
+
+app.delete('/campgrounds/:campground_id/review/:review_id/delete',async (req,res)=>{
+    const {campground_id,review_id}=req.params;
+    await Campground.findByIdAndUpdate(campground_id,{$pull:{review:review_id}});
+    await Review.findByIdAndDelete(review_id);
+    res.redirect(`/campground/${campground_id}`);
+})
+
+
+
+
+
 app.get('/campground/:id',async (req,res)=>{
     const {id}=req.params;
-    const campground=await Campground.findById({_id:id});
+    const campground=await Campground.findById({_id:id}).populate('review');
     if(campground){
     res.render('campground/show',{campground});}
     else{
@@ -67,12 +117,22 @@ app.get('/campground/:id',async (req,res)=>{
 app.get('/create',(req,res)=>{
     res.render('campground/create');
 })
+
+
 app.get('/campgrounds/:id/edit',async (req,res)=>{
     const {id}=req.params;
     const findCamp=await Campground.findById(id)
     
     res.render('campground/edit',{findCamp});
-})
+});
+
+
+
+
+
+
+
+
 app.patch('/campgrounds/:id/update',validateCampground,async (req,res)=>{
     const {id}=req.params;
     const updateCamp=await Campground.findByIdAndUpdate(id, req.body, {

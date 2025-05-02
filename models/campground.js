@@ -1,4 +1,5 @@
-const mongoose=require('mongoose')
+const mongoose=require('mongoose');
+const Review = require('./review');
 
 const campgroundSchema=new mongoose.Schema({
     title:{
@@ -20,6 +21,20 @@ const campgroundSchema=new mongoose.Schema({
     image:{
         type:String,
         required:true
+    },
+    review:[
+        {
+            type:mongoose.Schema.Types.ObjectId,
+            ref:Review
+        }
+    ]
+        
+    
+});
+
+campgroundSchema.post('findOneAndDelete',async (camp)=>{
+    if(camp.review.length){
+        await Review.deleteMany({_id:{$in:camp.review}})
     }
 })
 

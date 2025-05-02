@@ -24,12 +24,43 @@
   
             <form action="/delete/<%= campground._id %>?_method=DELETE" method="POST" class="d-inline">
               <button type="submit" class="btn btn-danger">Delete</button>
+              
             </form>
+            <a href="/campground/review/<%=campground._id %>" class="btn btn-success">Review</a>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+  <!--review-->
+
+  <ul class="list-group mt-4">
+    <% if (campground.review && campground.review.length === 0) { %>
+      <li class="list-group-item text-muted">No reviews yet. Be the first to review!</li>
+    <% } else { %>
+      <% for (let item of campground.review) { %>
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <strong><%= item.author?.username || 'Anonymous' %></strong>
+              <span class="text-warning">★ <%= item.rating %></span>
+              <p class="mb-1 mt-1"><%= item.text %></p>
+            </div>
+            <div class="d-flex flex-column gap-1">
+              <a href="/campground/<%= campground._id %>/review/<%=item._id %>/edit" class="btn btn-sm btn-outline-warning">Edit</a>
+              <form action="/campgrounds/<%= campground._id %>/review/<%= item._id %>/delete?_method=DELETE" method="POST">
+                <button class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </div>
+          </div>
+        </li>
+      <% } %>
+    <% } %>
+  </ul>
+  
+  
+  
   
     
     
