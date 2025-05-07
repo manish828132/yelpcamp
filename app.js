@@ -9,8 +9,35 @@ const AppError=require('./utils/AppError');
 const validateCampground=require('./utils/campgroundValidationSchema')
 const Review=require('./models/review')
 const validateReview=require('./utils/reviewValidationSchema');
+const session=require('express-session')
+const flash=require('connect-flash')
+const passport=require('passport');
+const localStrategy=require('passport-local').Strategy;
+const User=require('./models/user')
 
 const app=express();
+
+
+//*******************************************************************
+
+app.use(session({
+    secret:'thisismysecret',
+    resave:false,
+    saveUninitialized:true,
+    cookie:{maxAge:1000*60*60*24*7}
+}));
+
+app.use(flash());
+
+
+app.use(passport.initialize());
+app.use(passport.session());
+passport.use(new localStrategy(User.authenticate()));
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+/* **************************************************************** */
 
 app.use('/css', express.static(path.join(__dirname, 'node_modules/bootstrap/dist/css')))
 app.use('/js', express.static(path.join(__dirname, 'node_modules/bootstrap/dist/js')))
@@ -33,7 +60,11 @@ mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp-project', {
     
 });
 
-
+app.use((req,res,next)=>{
+    res.locals.message=req.flash('success');
+    res.locals.error=req.flash('error');
+    next();
+})
 
 app.get('/home',(req,res)=>{
     
@@ -50,9 +81,13 @@ app.get('/campground',async (req,res)=>{
     
 
    
-    // await Campground.insertMany(seedCampgrounds)
-    // res.send("ok")
+    
 })
+
+
+//*********************************************************************
+
+
 
 app.get('/campground/:cam_id/review/:rev_id/edit',async (req,res)=>{
     const {rev_id,cam_id}=req.params;
@@ -98,6 +133,10 @@ app.delete('/campgrounds/:campground_id/review/:review_id/delete',async (req,res
     await Review.findByIdAndDelete(review_id);
     res.redirect(`/campground/${campground_id}`);
 })
+
+
+
+//************************************************************** *
 
 
 
@@ -151,12 +190,26 @@ app.post('/create',validateCampground,async (req,res)=>{
         image:image
     })
     const saveCamp=await newCamp.save();
+    if(saveCamp){
+        req.flash('success','successfully created');
+    }
+    else
+    {
+        req.flash('error','something went wrong');
+    }
     res.redirect('/campground')
 })
 
 app.delete('/delete/:id',async (req,res)=>{
     const {id}=req.params;
-    await Campground.findByIdAndDelete(id);
+    const deleteCamp=await Campground.findByIdAndDelete(id);
+    if(deleteCamp){
+        req.flash('success','successfully deleted');
+    }
+    else
+    {
+        req.flash('error','something went wrong');
+    }
     res.redirect('/campground');
     
 
