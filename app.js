@@ -17,6 +17,18 @@ const User=require('./models/user')
 
 const app=express();
 
+//--------------------------middleware---------------------
+function isLoggedIn(req,res,next){
+    if(!req.isAuthenticated()){
+        req.session.returnTo=req.orginalUrl;
+        req.flash('error','you must be logged in to do that');
+        return res.redirect('/user/login');
+    }
+    next();
+}
+
+//------------------------------------------------------------------------------------------------
+
 
 //*******************************************************************
 
@@ -61,31 +73,121 @@ mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp-project', {
 });
 
 app.use((req,res,next)=>{
+    res.locals.currentUser=req.user;  // it will give the current user to all the routes.
     res.locals.message=req.flash('success');
     res.locals.error=req.flash('error');
     next();
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//-----------------------------USER------------------------------------------------
+
+
+// app.get('/fakeuser',async (req,res)=>{
+//     const user=new User({username:'manish',email:'dummy@gmail.com'});
+//     const newUser=await User.register(user,'password');  // it will hash the password and save the user in the database.
+//     res.send(newUser);
+// })
+
+
+app.get('/user/register',(req,res)=>{
+    res.render('user/register')
+});
+
+app.post('/user/register',async (req,res)=>{
+    const {username,email,password}=req.body;
+    const user=new User({username:username,email:email});
+    const newUser=await User.register(user,password);
+    if(newUser)
+        req.flash('success',"successfully register");
+    else
+        req.flash('error',"something went wrong");
+    res.redirect('/campground');
+
+
+
+});
+
+app.get('/user/login',(req,res)=>{
+    res.render('user/login')
+});
+
+app.post('/user/login', passport.authenticate('local',{failureFlash:true,failureRedirect:('/user/login')}),(req,res)=>{
+    
+   // const {username,email,password}=req.body;
+    console.log('current user is:',req.user);
+    req.flash('success','welcome back');
+    const redirectURL=req.session.returnTo||'/campground';
+    res.redirect(redirectURL);
+
+
+});
+
+app.get('/user/logout',isLoggedIn,(req,res)=>{
+    //console.log("logout")
+    req.logout(function (err) {
+        if (err) {
+            return next(err);
+        }
+        req.flash('success', 'see you soon!');
+        res.redirect('/user/login');
+    });
 })
+
+
+
+//---------------------------------------------user-end------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 app.get('/home',(req,res)=>{
     
     res.render('home');
-})
+});
 
-app.get('/campground',async (req,res)=>{
+
+//-------------------------------home route--------------------------
+app.get('/campground',isLoggedIn,async (req,res)=>{
     
     const campgrounds=await Campground.find({})
     
         res.render('campground/home',{campgrounds})
        
-    
-    
-
-   
+  
     
 })
+//--------------------------home route end----------------------------------------------
 
 
-//*********************************************************************
+//******************************CAMPGROUND-REVIEW***************************************
 
 
 
@@ -136,13 +238,13 @@ app.delete('/campgrounds/:campground_id/review/:review_id/delete',async (req,res
 
 
 
-//************************************************************** *
+//****************************END********************************** *
 
 
 
+//--------------------------campground---------------------------------------------
 
-
-app.get('/campground/:id',async (req,res)=>{
+app.get('/campground/:id',isLoggedIn,async (req,res)=>{
     const {id}=req.params;
     const campground=await Campground.findById({_id:id}).populate('review');
     if(campground){
@@ -153,12 +255,12 @@ app.get('/campground/:id',async (req,res)=>{
      
 })
 
-app.get('/create',(req,res)=>{
+app.get('/create',isLoggedIn,(req,res)=>{
     res.render('campground/create');
 })
 
 
-app.get('/campgrounds/:id/edit',async (req,res)=>{
+app.get('/campgrounds/:id/edit',isLoggedIn,async (req,res)=>{
     const {id}=req.params;
     const findCamp=await Campground.findById(id)
     
@@ -172,7 +274,7 @@ app.get('/campgrounds/:id/edit',async (req,res)=>{
 
 
 
-app.patch('/campgrounds/:id/update',validateCampground,async (req,res)=>{
+app.patch('/campgrounds/:id/update',isLoggedIn,validateCampground,async (req,res)=>{
     const {id}=req.params;
     const updateCamp=await Campground.findByIdAndUpdate(id, req.body, {
         new: true,       // return the updated document
@@ -181,7 +283,7 @@ app.patch('/campgrounds/:id/update',validateCampground,async (req,res)=>{
       res.redirect(`/campground/${updateCamp._id}`)
 })
 
-app.post('/create',validateCampground,async (req,res)=>{
+app.post('/create',isLoggedIn,validateCampground,async (req,res)=>{
     const {title,description,location,price,image}=req.body;
     const newCamp=new Campground({title:title,
         description:description,
@@ -200,7 +302,7 @@ app.post('/create',validateCampground,async (req,res)=>{
     res.redirect('/campground')
 })
 
-app.delete('/delete/:id',async (req,res)=>{
+app.delete('/delete/:id',isLoggedIn,async (req,res)=>{
     const {id}=req.params;
     const deleteCamp=await Campground.findByIdAndDelete(id);
     if(deleteCamp){
@@ -214,12 +316,18 @@ app.delete('/delete/:id',async (req,res)=>{
     
 
 })
-
+//-------------------------------end----------------------------------------------------------
 
 // app.use((err,req,res,next)=>{
 //     console.log(err.name);
 //     next(err);
 // })
+
+
+
+
+//-----------------------------------ERROR-HANDLING--------------------------------------------------
+
 
 app.all(/(.*)/, (req, res, next) => {
     next(new AppError('Page not found', 404));
@@ -236,10 +344,10 @@ app.use((err,req,res,next)=>{
 
 
 app.listen('3000',function(){
-    console.log('server started')
+    console.log('server started at 3000');
 })
 
-
+//------------------------------------------end-----------------------------------------------------
 
 // notes:
 // Ah, yes — you're totally right, and great point to bring up.
