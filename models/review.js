@@ -1,5 +1,5 @@
 const mongoose=require('mongoose')
-
+const User=require('./user');
 const reviewSchema=new mongoose.Schema({
     text:{
         type:String,
@@ -8,6 +8,10 @@ const reviewSchema=new mongoose.Schema({
     rating:{
         type:Number,
         required:true
+    },
+    author:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:User
     }
 });
 

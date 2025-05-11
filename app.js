@@ -27,6 +27,16 @@ function isLoggedIn(req,res,next){
     next();
 }
 
+async function isAuthor(req,res,next){
+    const {id}=req.params;
+    const camp=await Campground.findById(id);
+    if(!camp.author.equals(req.user._id)){
+        req.flash('error','you do not have permission to do that');
+        return res.redirect(`/campground/${id}`);
+    }
+    next();  // if the user is author then go to the next middleware or route handler.
+}
+
 //------------------------------------------------------------------------------------------------
 
 
@@ -128,7 +138,7 @@ app.get('/user/login',(req,res)=>{
 app.post('/user/login', passport.authenticate('local',{failureFlash:true,failureRedirect:('/user/login')}),(req,res)=>{
     
    // const {username,email,password}=req.body;
-    console.log('current user is:',req.user);
+    //console.log('current user is:',req.user);
     req.flash('success','welcome back');
     const redirectURL=req.session.returnTo||'/campground';
     res.redirect(redirectURL);
@@ -191,7 +201,7 @@ app.get('/campground',isLoggedIn,async (req,res)=>{
 
 
 
-app.get('/campground/:cam_id/review/:rev_id/edit',async (req,res)=>{
+app.get('/campground/:cam_id/review/:rev_id/edit',isLoggedIn,async (req,res)=>{
     const {rev_id,cam_id}=req.params;
    const review=await Review.findById(rev_id);
    
@@ -199,13 +209,13 @@ app.get('/campground/:cam_id/review/:rev_id/edit',async (req,res)=>{
 
 })
 
-app.get('/campground/review/:id',async (req,res)=>{
+app.get('/campground/review/:id',isLoggedIn,async (req,res)=>{
     const {id}=req.params;
 
     res.render('review/review',{id});
 })
 
-app.patch('/campground/:cam_id/review/:rev_id/edit',validateReview,async (req,res)=>{
+app.patch('/campground/:cam_id/review/:rev_id/edit',isLoggedIn,validateReview,async (req,res)=>{
     const{cam_id,rev_id}=req.params;
     const {text,rating}=req.body;
     const update=await Review.findByIdAndUpdate(rev_id, req.body, {
@@ -217,19 +227,21 @@ app.patch('/campground/:cam_id/review/:rev_id/edit',validateReview,async (req,re
 
 })
 
-app.post('/campground/review/:id',validateReview,async (req,res)=>{
+app.post('/campground/review/:id',validateReview,isLoggedIn,async (req,res)=>{
     const {text,rating}=req.body;
     const {id}=req.params;
     const camp=await Campground.findById({_id:id});
     const newReview=new Review({text,
-        rating});
+        rating,author:req.user._id});
+
     camp.review.push(newReview);
+    
     await newReview.save();  
     await camp.save();  
     res.redirect(`/campground/${id}`)
 })
 
-app.delete('/campgrounds/:campground_id/review/:review_id/delete',async (req,res)=>{
+app.delete('/campgrounds/:campground_id/review/:review_id/delete',isLoggedIn,async (req,res)=>{
     const {campground_id,review_id}=req.params;
     await Campground.findByIdAndUpdate(campground_id,{$pull:{review:review_id}});
     await Review.findByIdAndDelete(review_id);
@@ -246,7 +258,13 @@ app.delete('/campgrounds/:campground_id/review/:review_id/delete',async (req,res
 
 app.get('/campground/:id',isLoggedIn,async (req,res)=>{
     const {id}=req.params;
-    const campground=await Campground.findById({_id:id}).populate('review');
+    const campground=await Campground.findById({_id:id}).populate({
+        path:'review',
+        populate:{
+            path:'author'
+        }
+    }).populate('author');
+    console.log(campground);
     if(campground){
     res.render('campground/show',{campground});}
     else{
@@ -260,7 +278,7 @@ app.get('/create',isLoggedIn,(req,res)=>{
 })
 
 
-app.get('/campgrounds/:id/edit',isLoggedIn,async (req,res)=>{
+app.get('/campgrounds/:id/edit',isLoggedIn,isAuthor,async (req,res)=>{
     const {id}=req.params;
     const findCamp=await Campground.findById(id)
     
@@ -274,7 +292,7 @@ app.get('/campgrounds/:id/edit',isLoggedIn,async (req,res)=>{
 
 
 
-app.patch('/campgrounds/:id/update',isLoggedIn,validateCampground,async (req,res)=>{
+app.patch('/campgrounds/:id/update',isLoggedIn,isAuthor,validateCampground,async (req,res)=>{
     const {id}=req.params;
     const updateCamp=await Campground.findByIdAndUpdate(id, req.body, {
         new: true,       // return the updated document
@@ -289,8 +307,10 @@ app.post('/create',isLoggedIn,validateCampground,async (req,res)=>{
         description:description,
         location:location,
         price:price,
-        image:image
+        image:image,
+        author:req.user._id
     })
+    //newCamp.author=req.user._id;
     const saveCamp=await newCamp.save();
     if(saveCamp){
         req.flash('success','successfully created');
@@ -302,7 +322,7 @@ app.post('/create',isLoggedIn,validateCampground,async (req,res)=>{
     res.redirect('/campground')
 })
 
-app.delete('/delete/:id',isLoggedIn,async (req,res)=>{
+app.delete('/delete/:id',isLoggedIn,isAuthor,async (req,res)=>{
     const {id}=req.params;
     const deleteCamp=await Campground.findByIdAndDelete(id);
     if(deleteCamp){

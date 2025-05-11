@@ -43,14 +43,22 @@
         <li class="list-group-item">
           <div class="d-flex justify-content-between align-items-start">
             <div>
-              <strong><%= item.author?.username || 'Anonymous' %></strong>
+              <strong><%= item.author ? item.author.username : 'Anonymous' %></strong>
+
               <span class="text-warning">★ <%= item.rating %></span>
               <p class="mb-1 mt-1"><%= item.text %></p>
             </div>
             <div class="d-flex flex-column gap-1">
-              <a href="/campground/<%= campground._id %>/review/<%=item._id %>/edit" class="btn btn-sm btn-outline-warning">Edit</a>
-              <form action="/campgrounds/<%= campground._id %>/review/<%= item._id %>/delete?_method=DELETE" method="POST">
-                <button class="btn btn-sm btn-outline-danger">Delete</button>
+              <% if (item.author && currentUser && item.author._id.toString() === currentUser._id.toString()) { %>
+                <a href="/campground/<%= campground._id %>/review/<%= item._id %>/edit" class="btn btn-sm btn-outline-warning">Edit</a>
+                <form action="/campgrounds/<%= campground._id %>/review/<%= item._id %>/delete?_method=DELETE" method="POST">
+                  <button class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+              <% } %>
+              
+              
+
+               
               </form>
             </div>
           </div>

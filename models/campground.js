@@ -1,5 +1,6 @@
 const mongoose=require('mongoose');
 const Review = require('./review');
+const User=require('./user');
 
 const campgroundSchema=new mongoose.Schema({
     title:{
@@ -21,6 +22,10 @@ const campgroundSchema=new mongoose.Schema({
     image:{
         type:String,
         required:true
+    },
+    author:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:User
     },
     review:[
         {
